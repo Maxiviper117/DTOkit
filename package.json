@@ -1,5 +1,5 @@
 {
-  "name": "your-package-docs",
+  "name": "dtokit-docs",
   "private": true,
   "packageManager": "pnpm@10.23.0",
   "scripts": {

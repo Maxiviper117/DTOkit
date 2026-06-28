@@ -1,46 +1,69 @@
-# Your Package
+# DTOKit
 
-[![Tests](https://github.com/your-vendor/your-package/actions/workflows/tests.yml/badge.svg)](https://github.com/your-vendor/your-package/actions/workflows/tests.yml)
-[![Latest Version](https://img.shields.io/packagist/v/your-vendor/your-package.svg)](https://packagist.org/packages/your-vendor/your-package)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
+[![Tests](https://github.com/Maxiviper117/DTOkit/actions/workflows/tests.yml/badge.svg)](https://github.com/Maxiviper117/DTOkit/actions/workflows/tests.yml)
+[![PHPStan](https://github.com/Maxiviper117/DTOkit/actions/workflows/phpstan.yml/badge.svg)](https://github.com/Maxiviper117/DTOkit/actions/workflows/phpstan.yml)
+[![Latest Version](https://img.shields.io/packagist/v/maxiviper117/dtokit-core.svg)](https://packagist.org/packages/maxiviper117/dtokit-core)
+[![PHP Version](https://img.shields.io/packagist/php-v/maxiviper117/dtokit-core.svg)](https://packagist.org/packages/maxiviper117/dtokit-core)
+[![License](https://img.shields.io/github/license/Maxiviper117/DTOkit.svg)](LICENSE.md)
 
-A short, outcome-focused description of the package.
-
-## Creating a package from this template
-
-1. Click **Use this template** on GitHub and clone the new repository.
-2. Replace every placeholder listed below (matching case matters).
-3. Run `composer update`, then `composer check`.
-4. Replace the sample `Package` class and test with your implementation.
-5. Enable **Allow auto-merge** if you add Dependabot, and enable GitHub Actions.
-
-GitHub Actions jobs are intentionally skipped while this repository is named
-`template-php-package`. They activate automatically in repositories created
-from the template with a different name.
-
-| Placeholder | Example |
-| --- | --- |
-| `your-vendor` | `maxiviper117` |
-| `your-package` | `result-flow` |
-| `YourVendor` | `Maxiviper117` |
-| `YourPackage` | `ResultFlow` |
-| `Your Name` | `David Example` |
-
-Search before publishing: `git grep -n -E 'your-vendor|your-package|YourVendor|YourPackage|Your Name'`.
+DTOKit provides framework-agnostic typed data boundaries for PHP 8.4+. It maps arrays and objects into immutable data objects, serializes them safely, and explains mapping decisions and failures.
 
 ## Installation
 
 ```bash
-composer require your-vendor/your-package
+composer require maxiviper117/dtokit-core
 ```
 
-## Usage
+## Basic usage
 
 ```php
-use YourVendor\YourPackage\Package;
+use DTOKit\InputData;
 
-echo Package::name();
+final readonly class CreatePostData extends InputData
+{
+    public function __construct(
+        public string $title,
+        public string $body,
+        public ?int $categoryId = null,
+    ) {}
+}
+
+$post = CreatePostData::from([
+    'title' => 'Hello',
+    'body' => 'World',
+]);
+
+$payload = $post->toArray();
 ```
+
+`InputData` rejects unknown fields by default. `Data` and `OutputData` ignore them. Use `#[Strict]` or `#[IgnoreUnknown]` to override this per class.
+
+## Mapping and serialization
+
+- Supported sources: associative arrays, `stdClass`, and public properties of plain objects.
+- Supported values: typed scalars, nullable/defaulted fields, backed enums, `DateTimeInterface`, nested DTOKit objects, and lists declared with `#[ListOf]`.
+- `#[MapInputName]` and `#[MapOutputName]` define external names.
+- `#[WithCast]` and `#[WithTransformer]` invoke container-free extension classes.
+- `#[Hidden]`, `#[Sensitive]`, and `#[Redact]` control safe output.
+- Nullable accepts explicit `null`; only a constructor default makes a missing field optional.
+
+```php
+use DTOKit\Attribute\ListOf;
+use DTOKit\Attribute\MapInputName;
+
+final readonly class OrderData extends InputData
+{
+    /** @param list<LineData> $lines */
+    public function __construct(
+        #[MapInputName('order_id')] public int $orderId,
+        #[ListOf(LineData::class)] public array $lines,
+    ) {}
+}
+```
+
+## Non-throwing and explain APIs
+
+`Data::tryFrom()` returns a `MappingResult`. `Data::explain()` returns an `ExplainResult` with `toArray()`, `toJson()`, and `toText()` renderers. Diagnostics contain paths and types but never raw sensitive values.
 
 ## Development
 
@@ -49,20 +72,4 @@ composer install
 composer check
 ```
 
-### Documentation
-
-The documentation site uses VitePress and pnpm:
-
-```bash
-pnpm install
-pnpm docs:dev
-```
-
-Run `pnpm docs:build` before publishing documentation changes. The included
-GitHub Pages workflow deploys `docs/` after pushes to `main`. In the GitHub
-repository settings, set **Pages → Build and deployment → Source** to
-**GitHub Actions**.
-
-## License
-
-MIT. See [LICENSE.md](LICENSE.md).
+See [PRD.md](PRD.md) for product requirements, [Phases.md](Phases.md) for delivery status, and [AGENTS.md](AGENTS.md) for repository rules.

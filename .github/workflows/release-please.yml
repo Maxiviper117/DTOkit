@@ -7,11 +7,12 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   release:
-    if: github.event.repository.name != 'template-php-package'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: googleapis/release-please-action@v4
         with:
