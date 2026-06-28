@@ -1,0 +1,25 @@
+name: Code Style
+
+on:
+  push:
+    branches: [main]
+    paths: ['**.php', 'composer.json', 'composer.lock', '.github/workflows/code-style.yml']
+  pull_request:
+    paths: ['**.php', 'composer.json', 'composer.lock', '.github/workflows/code-style.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  pint:
+    if: github.event.repository.name != 'template-php-package'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: composer format-test

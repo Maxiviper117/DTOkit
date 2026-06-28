@@ -1,0 +1,11 @@
+/vendor/
+/build/
+/coverage/
+/.phpunit.cache/
+/.idea/
+/.vscode/
+.env
+composer.lock
+/node_modules/
+/.vitepress/cache/
+/.vitepress/dist/

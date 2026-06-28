@@ -1,0 +1,25 @@
+name: Rector
+
+on:
+  push:
+    branches: [main]
+    paths: ['**.php', 'composer.json', 'composer.lock', 'rector.php', '.github/workflows/rector.yml']
+  pull_request:
+    paths: ['**.php', 'composer.json', 'composer.lock', 'rector.php', '.github/workflows/rector.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  rector:
+    if: github.event.repository.name != 'template-php-package'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: composer refactor-test
