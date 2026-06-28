@@ -369,9 +369,6 @@ final class Engine
                     $types[] = $part;
                 }
             }
-            if (count($types) === 1) {
-                return ['name' => $types[0]->getName(), 'nullable' => true, 'union' => false];
-            }
 
             return ['name' => implode('|', array_map(static fn (ReflectionNamedType $part): string => $part->getName(), $types)), 'nullable' => $type->allowsNull(), 'union' => true];
         }

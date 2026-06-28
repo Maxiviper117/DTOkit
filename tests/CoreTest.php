@@ -196,6 +196,11 @@ final readonly class RecursiveData extends InputData
     public function __construct(public ?self $child = null) {}
 }
 
+final readonly class ParentTypedData extends InputData
+{
+    public function __construct(public parent $value) {}
+}
+
 final readonly class UnitEnumOutput extends OutputData
 {
     public function __construct(public UnitStatus $status) {}
@@ -384,4 +389,10 @@ it('guards mapping and serialization recursion depth', function (): void {
         $data = new RecursiveData($data);
     }
     expect(fn (): array => $data->toArray())->toThrow(SerializationException::class, 'Maximum serialization depth');
+});
+
+it('resolves parent property types', function (): void {
+    $value = new AddressData('Polokwane');
+
+    expect(ParentTypedData::from(['value' => $value])->value)->toBe($value);
 });
