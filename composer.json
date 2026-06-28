@@ -1,19 +1,40 @@
 {
     "name": "maxiviper117/dtokit-core",
     "description": "Framework-agnostic typed data boundaries for PHP",
-    "keywords": ["php", "dto", "data", "mapping", "serialization"],
+    "keywords": [
+        "php",
+        "dto",
+        "data",
+        "mapping",
+        "serialization"
+    ],
     "homepage": "https://github.com/Maxiviper117/DTOkit",
     "license": "MIT",
-    "authors": [{"name": "Maxiviper117", "role": "Developer"}],
-    "require": {"php": "^8.4"},
+    "authors": [
+        {
+            "name": "Maxiviper117",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.4"
+    },
     "require-dev": {
         "laravel/pint": "^1.24",
         "pestphp/pest": "^3.8",
         "phpstan/phpstan": "^2.1",
         "rector/rector": "^2.3"
     },
-    "autoload": {"psr-4": {"DTOKit\\": "src/"}},
-    "autoload-dev": {"psr-4": {"DTOKit\\Tests\\": "tests/"}},
+    "autoload": {
+        "psr-4": {
+            "DTOKit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DTOKit\\Tests\\": "tests/"
+        }
+    },
     "scripts": {
         "analyse": "phpstan analyse",
         "test": "pest",
@@ -22,10 +43,17 @@
         "format-test": "pint --test",
         "refactor": "rector process",
         "refactor-test": "rector process --dry-run",
-        "check": ["@format-test", "@analyse", "@refactor-test", "@test"]
+        "check": [
+            "@format-test",
+            "@analyse",
+            "@refactor-test",
+            "@test"
+        ]
     },
     "config": {
         "sort-packages": true,
-        "allow-plugins": {"pestphp/pest-plugin": true}
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     }
 }
