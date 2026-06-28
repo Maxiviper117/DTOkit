@@ -357,7 +357,7 @@ final class Engine
             throw new MetadataException("{$class}::\${$parameter->getName()} must have a type.");
         }
         if ($type instanceof ReflectionNamedType) {
-            return ['name' => $type->getName(), 'nullable' => $type->allowsNull(), 'union' => false];
+            return ['name' => $this->resolveTypeName($type, $class), 'nullable' => $type->allowsNull(), 'union' => false];
         }
         if ($type instanceof ReflectionUnionType) {
             $types = [];
@@ -376,6 +376,19 @@ final class Engine
             return ['name' => implode('|', array_map(static fn (ReflectionNamedType $part): string => $part->getName(), $types)), 'nullable' => $type->allowsNull(), 'union' => true];
         }
         throw new MetadataException("Unsupported intersection type in {$class}.");
+    }
+
+    /** @param class-string<Data> $class */
+    private function resolveTypeName(ReflectionNamedType $type, string $class): string
+    {
+        if ($type->getName() === 'self' || $type->getName() === 'static') {
+            return $class;
+        }
+        if ($type->getName() === 'parent') {
+            return get_parent_class($class) ?: $type->getName();
+        }
+
+        return $type->getName();
     }
 
     /**
