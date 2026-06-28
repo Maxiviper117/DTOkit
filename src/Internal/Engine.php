@@ -62,7 +62,7 @@ final class Engine
 
     /**
      * @param  class-string<Data>  $class
-     * @param  array<string, mixed>|object  $source
+     * @param  array<mixed, mixed>|object  $source
      */
     public function map(string $class, array|object $source): Data
     {

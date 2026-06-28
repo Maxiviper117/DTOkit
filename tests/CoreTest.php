@@ -9,12 +9,15 @@ use DTOKit\Attribute\MapInputName;
 use DTOKit\Attribute\MapOutputName;
 use DTOKit\Attribute\Redact;
 use DTOKit\Attribute\Sensitive;
+use DTOKit\Attribute\Strict;
 use DTOKit\Attribute\WithCast;
 use DTOKit\Attribute\WithTransformer;
 use DTOKit\Contract\Cast;
 use DTOKit\Contract\Transformer;
+use DTOKit\Data;
 use DTOKit\Exception\AmbiguousMappingException;
 use DTOKit\Exception\CastException;
+use DTOKit\Exception\MappingException;
 use DTOKit\Exception\MetadataException;
 use DTOKit\Exception\MissingRequiredFieldException;
 use DTOKit\Exception\SerializationException;
@@ -22,11 +25,33 @@ use DTOKit\Exception\TransformerException;
 use DTOKit\Exception\TypeMismatchException;
 use DTOKit\Exception\UnknownFieldException;
 use DTOKit\InputData;
+use DTOKit\Internal\Engine;
 use DTOKit\OutputData;
+use DTOKit\Result\MappingResult;
 
 enum Status: string
 {
     case Active = 'active';
+}
+
+enum UnitStatus
+{
+    case Ready;
+}
+
+interface FirstContract {}
+interface SecondContract {}
+final class ContractValue implements FirstContract, SecondContract {}
+
+final class UntypedFixture
+{
+    /** @param mixed $value */
+    public function __construct($value)
+    {
+        if ($value === self::class) {
+            throw new RuntimeException('Unused fixture guard.');
+        }
+    }
 }
 
 final class TrimCast implements Cast
@@ -121,6 +146,61 @@ final readonly class FloatData extends OutputData
 
 final readonly class InvalidMetadataData extends InputData {}
 
+final readonly class IntersectionData extends InputData
+{
+    public function __construct(public FirstContract&SecondContract $value) {}
+}
+
+final readonly class NullableIntersectionData extends InputData
+{
+    public function __construct(public (FirstContract&SecondContract)|null $value) {}
+}
+
+final readonly class DuplicateInputData extends InputData
+{
+    public function __construct(
+        #[MapInputName('value')] public string $first,
+        #[MapInputName('value')] public string $second,
+    ) {}
+}
+
+#[Strict]
+final readonly class StrictOutputData extends OutputData
+{
+    public function __construct(public int $id) {}
+}
+
+final readonly class ThrowingConstructorData extends InputData
+{
+    public function __construct(public string $value)
+    {
+        throw new RuntimeException('constructor failed');
+    }
+}
+
+final readonly class ScalarData extends InputData
+{
+    /** @param list<string> $items */
+    public function __construct(
+        public mixed $anything,
+        public float $ratio,
+        public bool $enabled,
+        public array $items,
+        public object $context,
+        public ContractValue $contract,
+    ) {}
+}
+
+final readonly class RecursiveData extends InputData
+{
+    public function __construct(public ?self $child = null) {}
+}
+
+final readonly class UnitEnumOutput extends OutputData
+{
+    public function __construct(public UnitStatus $status) {}
+}
+
 /** @return array<string, mixed> */
 function validPayload(): array
 {
@@ -201,9 +281,107 @@ it('rejects ambiguous unions and invalid metadata', function (): void {
     expect(fn (): InvalidMetadataData => InvalidMetadataData::from([]))->toThrow(MetadataException::class, 'public constructor');
 });
 
+it('covers metadata validation failures', function (): void {
+    eval('final readonly class CoverageNonPromotedData extends \\DTOKit\\InputData { public function __construct(string $value) {} }');
+    eval('final readonly class CoverageDuplicateAttributeData extends \\DTOKit\\InputData { public function __construct(#[\\DTOKit\\Attribute\\MapInputName("first"), \\DTOKit\\Attribute\\MapInputName("second")] public string $value) {} }');
+    $nonPromoted = 'CoverageNonPromotedData';
+    $duplicateAttribute = 'CoverageDuplicateAttributeData';
+    if (! is_a($nonPromoted, Data::class, true) || ! is_a($duplicateAttribute, Data::class, true)) {
+        throw new RuntimeException('Invalid coverage fixture declaration.');
+    }
+
+    expect(fn (): Data => Engine::instance()->map($nonPromoted, ['value' => 'x']))->toThrow(MetadataException::class, 'promoted');
+    $typeMethod = new ReflectionMethod(Engine::class, 'type');
+    $untypedParameter = new ReflectionClass(UntypedFixture::class)->getConstructor()?->getParameters()[0];
+    if (! $untypedParameter instanceof ReflectionParameter) {
+        throw new RuntimeException('Missing untyped coverage parameter.');
+    }
+    expect(fn (): mixed => $typeMethod->invoke(Engine::instance(), $untypedParameter, ResponseData::class))->toThrow(MetadataException::class, 'must have a type');
+    expect(fn (): IntersectionData => IntersectionData::from(['value' => new ContractValue]))->toThrow(MetadataException::class, 'intersection type');
+    expect(fn (): NullableIntersectionData => NullableIntersectionData::from(['value' => new ContractValue]))->toThrow(MetadataException::class, 'intersection union');
+    expect(fn (): DuplicateInputData => DuplicateInputData::from(['value' => 'x']))->toThrow(MetadataException::class, 'Duplicate input name');
+    expect(fn (): Data => Engine::instance()->map($duplicateAttribute, ['first' => 'x']))->toThrow(MetadataException::class, 'duplicated');
+});
+
 it('wraps extension and serialization failures', function (): void {
     expect(fn (): CastFailureData => CastFailureData::from(['value' => 'secret']))->toThrow(CastException::class, 'value');
     expect(fn (): array => new TransformerFailureData('x')->toArray())->toThrow(TransformerException::class);
     expect(fn (): array => new UnsupportedOutputData(new stdClass)->toArray())->toThrow(SerializationException::class, 'Unsupported');
     expect(fn (): string => new FloatData(NAN)->toJson())->toThrow(SerializationException::class, 'JSON encoding');
+});
+
+it('covers scalar and existing-object conversion branches', function (): void {
+    $address = new AddressData('Pretoria');
+    $date = new DateTimeImmutable('2026-06-28T10:00:00+02:00');
+    $payload = validPayload();
+    $payload['address'] = $address;
+    $payload['status'] = Status::Active;
+    $payload['createdAt'] = $date;
+
+    $user = UserData::from($payload);
+    expect($user->address)->toBe($address)
+        ->and($user->status)->toBe(Status::Active)
+        ->and($user->createdAt)->toBe($date);
+
+    $context = new stdClass;
+    $contract = new ContractValue;
+    $scalars = ScalarData::from([
+        'anything' => 'anything',
+        'ratio' => '1.5',
+        'enabled' => 'true',
+        'items' => ['one'],
+        'context' => $context,
+        'contract' => $contract,
+    ]);
+    expect($scalars->ratio)->toBe(1.5)
+        ->and($scalars->enabled)->toBeTrue()
+        ->and($scalars->items)->toBe(['one'])
+        ->and($scalars->context)->toBe($context)
+        ->and($scalars->contract)->toBe($contract)
+        ->and(new UnitEnumOutput(UnitStatus::Ready)->toArray())->toBe(['status' => 'Ready']);
+});
+
+it('covers null, strict, constructor, and normalization failures', function (): void {
+    expect(fn (): ResponseData => ResponseData::from(['id' => null]))->toThrow(TypeMismatchException::class, 'id');
+    expect(fn (): StrictOutputData => StrictOutputData::from(['id' => 1, 'extra' => true]))->toThrow(UnknownFieldException::class, 'extra');
+    expect(fn (): ThrowingConstructorData => ThrowingConstructorData::from(['value' => 'x']))->toThrow(MappingException::class, 'Could not construct');
+    expect(fn (): Data => Engine::instance()->map(ResponseData::class, [0 => 1]))->toThrow(MappingException::class, 'strings');
+
+    $payload = validPayload();
+    $payload['address'] = 10;
+    expect(fn (): UserData => UserData::from($payload))->toThrow(TypeMismatchException::class, 'address');
+    $payload = validPayload();
+    $payload['status'] = [];
+    expect(fn (): UserData => UserData::from($payload))->toThrow(TypeMismatchException::class, 'status');
+    $payload = validPayload();
+    $payload['createdAt'] = 'not a real date %%%';
+    expect(fn (): UserData => UserData::from($payload))->toThrow(TypeMismatchException::class, 'createdAt');
+});
+
+it('returns failed explanations and both mapping result states', function (): void {
+    $explain = AddressData::explain([]);
+    $success = MappingResult::success(new AddressData('Gqeberha'));
+    $failure = MappingResult::failure(new MappingException('failed'));
+
+    expect($explain->succeeded())->toBeFalse()
+        ->and($explain->error)->toBeInstanceOf(MissingRequiredFieldException::class)
+        ->and($explain->toText())->toContain('Mapping failed')
+        ->and($success->succeeded())->toBeTrue()
+        ->and($success->failed())->toBeFalse()
+        ->and($failure->succeeded())->toBeFalse()
+        ->and($failure->failed())->toBeTrue();
+});
+
+it('guards mapping and serialization recursion depth', function (): void {
+    $payload = [];
+    for ($index = 0; $index < 66; $index++) {
+        $payload = ['child' => $payload];
+    }
+    expect(fn (): RecursiveData => RecursiveData::from($payload))->toThrow(MappingException::class, 'Maximum mapping depth');
+
+    $data = new RecursiveData;
+    for ($index = 0; $index < 66; $index++) {
+        $data = new RecursiveData($data);
+    }
+    expect(fn (): array => $data->toArray())->toThrow(SerializationException::class, 'Maximum serialization depth');
 });
