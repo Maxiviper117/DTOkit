@@ -23,13 +23,13 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event.repository.name != 'template-php-package'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
         with:
           version: 10.23.0

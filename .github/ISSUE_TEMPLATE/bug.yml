@@ -1,0 +1,42 @@
+name: Bug report
+description: Report reproducible incorrect DTOKit behavior.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not disclose security vulnerabilities here. Use private vulnerability reporting.
+  - type: input
+    id: version
+    attributes:
+      label: DTOKit version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: php
+    attributes:
+      label: PHP version
+      placeholder: 8.4.0
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest DTO and payload that reproduce the issue.
+      render: php
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Exception or output
+      render: shell

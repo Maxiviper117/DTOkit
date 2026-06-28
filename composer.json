@@ -1,19 +1,19 @@
 {
-    "name": "your-vendor/your-package",
-    "description": "A short description of your PHP package",
-    "keywords": ["php", "package"],
-    "homepage": "https://github.com/your-vendor/your-package",
+    "name": "maxiviper117/dtokit-core",
+    "description": "Framework-agnostic typed data boundaries for PHP",
+    "keywords": ["php", "dto", "data", "mapping", "serialization"],
+    "homepage": "https://github.com/Maxiviper117/DTOkit",
     "license": "MIT",
-    "authors": [{"name": "Your Name", "role": "Developer"}],
-    "require": {"php": "^8.2"},
+    "authors": [{"name": "Maxiviper117", "role": "Developer"}],
+    "require": {"php": "^8.4"},
     "require-dev": {
         "laravel/pint": "^1.24",
         "pestphp/pest": "^3.8",
         "phpstan/phpstan": "^2.1",
         "rector/rector": "^2.3"
     },
-    "autoload": {"psr-4": {"YourVendor\\YourPackage\\": "src/"}},
-    "autoload-dev": {"psr-4": {"YourVendor\\YourPackage\\Tests\\": "tests/"}},
+    "autoload": {"psr-4": {"DTOKit\\": "src/"}},
+    "autoload-dev": {"psr-4": {"DTOKit\\Tests\\": "tests/"}},
     "scripts": {
         "analyse": "phpstan analyse",
         "test": "pest",
@@ -27,7 +27,5 @@
     "config": {
         "sort-packages": true,
         "allow-plugins": {"pestphp/pest-plugin": true}
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    }
 }

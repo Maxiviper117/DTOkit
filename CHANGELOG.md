@@ -1,3 +1,3 @@
 # Changelog
 
-All notable changes are tracked here by Release Please.
+All notable changes to this project will be documented here by Release Please.
