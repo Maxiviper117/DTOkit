@@ -12,6 +12,7 @@ DTOKit is a framework-neutral typed data-boundary toolkit. Core code must not de
 - Never expose sensitive raw values through errors, explain traces, logs, or serialization.
 - Preserve full nested paths in mapping and serialization failures.
 - Prefer small immutable value objects and interfaces over configurable inheritance.
+- Review and update `AGENTS.md` whenever repository changes affect its guidance, workflows, architecture, conventions, verification steps, or scope. Do not leave known instructions stale.
 - Update `Phases.md` whenever phase status or scope changes.
 
 ## Verification

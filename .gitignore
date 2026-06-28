@@ -7,5 +7,6 @@
 .env
 composer.lock
 /node_modules/
+/workbench/
 /.vitepress/cache/
 /.vitepress/dist/
